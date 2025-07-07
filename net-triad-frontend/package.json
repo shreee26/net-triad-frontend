@@ -1,0 +1,43 @@
+{
+  "name": "itiva-frontend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --fix",
+    "format": "prettier --write src/"
+  },
+  "dependencies": {
+    "@ilovepdf/ilovepdf-nodejs": "^0.3.1",
+    "axios": "^1.10.0",
+    "chart.js": "^4.5.0",
+    "html-to-text": "^9.0.5",
+    "jspdf-autotable": "^5.0.2",
+    "pinia": "^3.0.3",
+    "uuid": "^11.1.0",
+    "vue": "^3.5.13",
+    "vue-chartjs": "^5.3.2",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.22.0",
+    "@tailwindcss/postcss": "^4.1.10",
+    "@tailwindcss/vite": "^4.1.10",
+    "@vitejs/plugin-vue": "^5.2.3",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.22.0",
+    "eslint-plugin-vue": "~10.0.0",
+    "globals": "^16.0.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.1",
+    "postcss": "^8.5.6",
+    "prettier": "3.5.3",
+    "tailwindcss": "^4.1.10",
+    "vite": "^6.2.4",
+    "vite-plugin-vue-devtools": "^7.7.2"
+  }
+}
