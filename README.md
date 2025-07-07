@@ -1,4 +1,4 @@
-# IT Vulnerability Assessment Frontend
+# Net Triad Frontend
 
 A comprehensive Vue.js application for conducting IT infrastructure vulnerability assessments with advanced features including draft management, user authentication, and detailed reporting.
 
