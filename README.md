@@ -41,7 +41,7 @@ A comprehensive Vue.js application for conducting IT infrastructure vulnerabilit
 ## 📁 Project Structure
 
 ```
-itiva-frontend/
+net-triad-frontend/
 ├── src/
 │   ├── api/
 │   │   └── mockData.js          # Mock questionnaire data
@@ -56,6 +56,7 @@ itiva-frontend/
 │   ├── stores/
 │   │   ├── auth.js              # User authentication store
 │   │   ├── assessment.js        # Assessment management store
+│   │   ├── questionnaires.js    # Questionnaire data store
 │   │   └── reports.js           # Reports management store
 │   ├── utils/
 │   │   ├── errorHandler.js      # Error handling utilities
@@ -94,7 +95,7 @@ itiva-frontend/
 
    ```bash
    git clone <repository-url>
-   cd itiva-frontend
+   cd net-triad-frontend
    ```
 
 2. **Install dependencies**

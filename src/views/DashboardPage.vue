@@ -1,10 +1,12 @@
 <!-- src/views/DashboardPage.vue - Enhanced version with better UX and accessibility -->
 <script setup>
-import { ref, computed, onMounted, inject } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router' // Add useRoute
 import { useAssessmentStore } from '@/stores/assessment' // Import the assessment store
 import { useAuthStore } from '@/stores/auth' // Import the auth store
 import { useReportsStore } from '@/stores/reports' // Import the new reports store
+import { useQuestionnairesStore } from '@/stores/questionnaires' // Import the questionnaires store
+import { useUiStore } from '@/stores/ui' // Import the UI store
 import AppHeader from '@/components/AppHeader.vue'
 import AppFooter from '@/components/AppFooter.vue'
 import SystemTestPanel from '@/components/SystemTestPanel.vue'
@@ -12,6 +14,8 @@ import SystemTestPanel from '@/components/SystemTestPanel.vue'
 // Initialize the Vue Router for navigation
 const router = useRouter()
 const route = useRoute()
+
+const mainContent = ref(null)
 
 // --- Admin View Logic ---
 const isAdminView = computed(() => route.query.viewAsAdmin === 'true')
@@ -40,6 +44,8 @@ function goBackToAdmin() {
 // Initialize the auth store
 const authStore = useAuthStore()
 const reportsStore = useReportsStore()
+const uiStore = useUiStore()
+const questionnairesStore = useQuestionnairesStore()
 const assessmentStore = useAssessmentStore()
 
 // Get toast functions
@@ -49,6 +55,7 @@ const showToast = inject('showToast')
 const showSettingsMenu = ref(false)
 const showDeleteConfirmModal = ref(false)
 const reportToDeleteId = ref(null)
+const showNewAssessmentModal = ref(false)
 
 // Reactive state for search functionality
 const searchQuery = ref('')
@@ -109,6 +116,35 @@ const averageScore = computed(() => {
   return avg.toFixed(1)
 })
 
+const scoreTrend = computed(() => {
+  const reportsByType = completedReports.value.reduce((acc, report) => {
+    if (!acc[report.type]) acc[report.type] = []
+    acc[report.type].push(report)
+    return acc
+  }, {})
+
+  // Only consider types that have at least two reports to calculate a trend
+  const trendableGroups = Object.values(reportsByType).filter((group) => group.length >= 2)
+
+  if (trendableGroups.length === 0) {
+    return 'neutral' // Not enough data for a trend
+  }
+
+  const latestScores = trendableGroups.map(
+    (group) => group.sort((a, b) => new Date(b.date) - new Date(a.date))[0].score,
+  )
+  const previousScores = trendableGroups.map(
+    (group) => group.sort((a, b) => new Date(b.date) - new Date(a.date))[1].score,
+  )
+
+  const currentAvg = latestScores.reduce((sum, score) => sum + score, 0) / latestScores.length
+  const previousAvg = previousScores.reduce((sum, score) => sum + score, 0) / previousScores.length
+
+  if (currentAvg > previousAvg) return 'up'
+  if (currentAvg < previousAvg) return 'down'
+  return 'neutral'
+})
+
 const filteredReports = computed(() => {
   if (!searchQuery.value.trim()) {
     return reportsForDisplay.value // Use the new dynamic data source
@@ -117,6 +153,15 @@ const filteredReports = computed(() => {
     report.name.toLowerCase().includes(searchQuery.value.toLowerCase()),
   )
 })
+
+const activeAssessments = computed(() =>
+  questionnairesStore.questionnaires
+    .filter((q) => q.status === 'Active')
+    .map((q) => ({
+      ...q,
+      questionsCount: questionnairesStore.getQuestionCountForAssessment(q.name),
+    })),
+)
 
 // --- Grading Logic (copied for consistency) ---
 function getGrade(score) {
@@ -240,12 +285,18 @@ async function continueAssessment(report) {
  * Navigates to the QuestionnairePage to initiate a new security assessment.
  */
 async function startNewAssessment() {
+  showNewAssessmentModal.value = true
+}
+
+async function startSelectedAssessment(type) {
+  showNewAssessmentModal.value = false
   try {
     isLoading.value = true
     // Navigate to the questionnaire page with a default assessment type
-    await router.push({ name: 'questionnaire', params: { type: 'Standard ITIVA Assessment' } })
+    await router.push({ name: 'questionnaire', params: { type } })
   } catch (error) {
     console.error('Error starting new assessment:', error)
+    showToast('Failed to start assessment.', 'error')
   } finally {
     isLoading.value = false
   }
@@ -303,6 +354,14 @@ onMounted(() => {
     showWelcomeModal.value = true
     localStorage.setItem('dashboard-visited', 'true')
   }
+
+  // Set the main scroll container for the AppFooter's Back to Top button
+  uiStore.setMainScrollContainer(mainContent.value)
+})
+
+onBeforeUnmount(() => {
+  // Clean up the scroll container when leaving the page
+  uiStore.setMainScrollContainer(null)
 })
 
 /**
@@ -323,7 +382,7 @@ function closeSystemTestPanel() {
 <template>
   <!-- Main container for the dashboard page, with light gray background -->
 
-  <div class="min-h-screen bg-gray-100 font-sans flex flex-col">
+  <div class="h-screen bg-gray-100 font-sans flex flex-col">
     <!-- Admin View Header: A special header shown only when an admin is viewing. -->
     <header
       v-if="isAdminView"
@@ -340,10 +399,15 @@ function closeSystemTestPanel() {
       </button>
     </header>
     <!-- Default User Header: The standard header for a logged-in user. -->
-    <AppHeader v-else :show-new-assessment="true" />
+    <AppHeader
+      v-else
+      :show-new-assessment="true"
+      @request-new-assessment-modal="showNewAssessmentModal = true"
+    />
 
     <!-- Main Content Area: Centered, padded, responsive -->
-    <main class="container mx-auto px-6 py-8 flex-grow">
+    <main ref="mainContent" class="flex-grow overflow-y-auto">
+      <div class="container mx-auto px-6 py-8">
       <!-- Welcome Heading - uses authStore.userFullName for better display -->
       <h1 v-if="!isAdminView" class="text-3xl font-bold text-gray-900 mb-6">
         Welcome, {{ authStore.userFullName }}!
@@ -359,7 +423,35 @@ function closeSystemTestPanel() {
         <!-- Average Score Card -->
         <div class="bg-white rounded-lg shadow p-6 text-center">
           <h3 class="text-xl font-semibold text-gray-700 mb-2">Average Score</h3>
+            <div class="flex items-center justify-center">
           <p class="text-5xl font-extrabold text-green-600">{{ averageScore }}</p>
+              <div v-if="scoreTrend !== 'neutral'" class="ml-2">
+                <svg
+                  v-if="scoreTrend === 'up'"
+                  class="w-8 h-8 text-green-500"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z"
+                    clip-rule="evenodd"
+                  ></path>
+                </svg>
+                <svg
+                  v-if="scoreTrend === 'down'"
+                  class="w-8 h-8 text-red-500"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 9.586V7z"
+                    clip-rule="evenodd"
+                  ></path>
+                </svg>
+              </div>
+            </div>
         </div>
         <!-- Draft Assessments Card -->
         <div class="bg-white rounded-lg shadow p-6 text-center">
@@ -383,7 +475,11 @@ function closeSystemTestPanel() {
           </div>
         </div>
 
-        <div v-if="filteredReports.length > 0" class="overflow-auto max-h-96">
+          <div
+            ref="reportsContainer"
+            v-if="filteredReports.length > 0"
+            class="overflow-auto max-h-96 overflow-y-auto"
+          >
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50 sticky top-0">
               <tr>
@@ -672,8 +768,9 @@ function closeSystemTestPanel() {
           </button>
         </div>
       </section>
+      </div>
     </main>
-    <AppFooter v-if="!isAdminView" />
+    <AppFooter />
 
     <!-- Welcome Modal: Displays a welcome message when the dashboard is loaded -->
     <transition name="flash-out-fade">
@@ -718,6 +815,46 @@ function closeSystemTestPanel() {
             class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-blue-700 transition-colors duration-200"
           >
             Get Started
+          </button>
+        </div>
+      </div>
+    </transition>
+
+    <!-- New Assessment Modal -->
+    <transition name="fade">
+      <div
+        v-if="showNewAssessmentModal"
+        @click.self="showNewAssessmentModal = false"
+        class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50"
+      >
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full relative">
+          <h3 class="text-xl font-bold text-gray-800 mb-4">Start a New Assessment</h3>
+          <p class="text-gray-600 mb-6">
+            Please select the type of assessment you would like to begin.
+          </p>
+          <ul class="space-y-2 max-h-60 overflow-y-auto">
+            <li v-for="assessment in activeAssessments" :key="assessment.id">
+              <button
+                @click="startSelectedAssessment(assessment.name)"
+                class="w-full text-left p-4 rounded-lg bg-gray-100 hover:bg-blue-100 transition-colors"
+              >
+                <h4 class="font-semibold text-gray-800">{{ assessment.name }}</h4>
+                <p class="text-sm text-gray-600">{{ assessment.questionsCount }} questions</p>
+              </button>
+            </li>
+          </ul>
+          <button
+            @click="showNewAssessmentModal = false"
+            class="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              ></path>
+            </svg>
           </button>
         </div>
       </div>

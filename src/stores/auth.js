@@ -34,7 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
         firstName: 'Default',
         lastName: 'Admin',
         email: 'admin@admin.com',
-        companyName: 'ITIVA Corp',
+        companyName: 'NET TRIAD Corp',
         companyDescription: 'Administrator Account',
         address: '1 Admin Plaza',
         city: 'Adminville',

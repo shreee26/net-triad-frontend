@@ -1,5 +1,5 @@
 {
-  "name": "itiva-frontend",
+  "name": "net-triad-frontend",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,14 +12,19 @@
   },
   "dependencies": {
     "@ilovepdf/ilovepdf-nodejs": "^0.3.1",
+    "@vercel/analytics": "^1.5.0",
+    "@vercel/speed-insights": "^1.2.0",
     "axios": "^1.10.0",
     "chart.js": "^4.5.0",
+    "exceljs": "^4.4.0",
     "html-to-text": "^9.0.5",
     "jspdf-autotable": "^5.0.2",
+    "papaparse": "^5.5.3",
     "pinia": "^3.0.3",
     "uuid": "^11.1.0",
     "vue": "^3.5.13",
     "vue-chartjs": "^5.3.2",
+    "vue-draggable-next": "^2.2.1",
     "vue-router": "^4.5.0"
   },
   "devDependencies": {

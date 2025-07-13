@@ -27,7 +27,7 @@ export const useAssessmentStore = defineStore('assessment', () => {
    * This is a static list that can be extended as needed even from a DB.
    */
   const availableAssessments = ref([
-    'Standard ITIVA Assessment',
+    'Standard Net Triad Assessment',
     'Advanced Cloud Security Check',
     'GDPR Compliance Audit',
   ])

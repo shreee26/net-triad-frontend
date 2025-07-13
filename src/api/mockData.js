@@ -7,7 +7,7 @@
 export const fullQuestionnaireData = [
   {
     id: 1,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Website Strength',
     text: 'Is your website traffic encrypted using a valid and current SSL/TLS certificate (HTTPS)?',
     explanation:
@@ -53,7 +53,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 2,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Website Strength',
     text: 'Are all software components of your website (e.g., CMS, plugins, themes) kept up-to-date?',
     explanation:
@@ -100,7 +100,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 3,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Website Strength',
     text: 'Do you have a Web Application Firewall (WAF) in place?',
     explanation:
@@ -148,7 +148,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 4,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Website Strength',
     text: 'Are user-submitted data and inputs validated on both the frontend and backend?',
     explanation:
@@ -197,7 +197,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 5,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Website Strength',
     text: 'Does your website have a strong password policy for user and administrator accounts?',
     explanation:
@@ -247,7 +247,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 6,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Website Strength',
     text: 'Are regular backups of your website data performed?',
     explanation:
@@ -295,7 +295,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 7,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Website Strength',
     text: "Does your website's design incorporate security best practices, such as the principle of least privilege?",
     explanation:
@@ -345,7 +345,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 8,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Website Strength',
     text: 'Have you implemented security headers to protect against attacks like cross-site scripting (XSS) and clickjacking?',
     explanation:
@@ -393,7 +393,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 9,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Devices & Network',
     text: 'Do you maintain an up-to-date inventory of all devices connected to your business network?',
     explanation:
@@ -442,7 +442,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 10,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Devices & Network',
     text: 'Is all office Wi-Fi protected with a strong password and modern encryption (e.g., WPA2 or WPA3)?',
     explanation:
@@ -491,7 +491,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 11,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Devices & Network',
     text: 'Are your network devices, such as routers and firewalls, configured with unique, strong passwords?',
     explanation:
@@ -540,7 +540,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 12,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Devices & Network',
     text: 'Do you have a policy for employees connecting personal devices to the company network (BYOD policy)?',
     explanation:
@@ -588,7 +588,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 13,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Devices & Network',
     text: 'Is your internal network segmented to separate critical systems from general user access?',
     explanation:
@@ -636,7 +636,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 14,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Devices & Network',
     text: 'Are all computers and servers protected with reputable and up-to-date anti-malware software?',
     explanation:
@@ -685,7 +685,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 15,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Devices & Network',
     text: 'Do you have a firewall configured to block unsolicited incoming network traffic?',
     explanation:
@@ -734,7 +734,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 16,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Compliance Documentation',
     text: 'Do you have a formally documented Information Security Policy that is accessible to all employees?',
     explanation:
@@ -781,7 +781,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 17,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Compliance Documentation',
     text: 'Is there a clear Data Protection Policy that outlines how sensitive data is handled?',
     explanation:
@@ -829,7 +829,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 18,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Compliance Documentation',
     text: 'Have you established an Incident Response Plan to guide your actions in the event of a security breach?',
     explanation:
@@ -879,7 +879,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 19,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Compliance Documentation',
     text: 'Is there a defined policy for employee password complexity and regular updates?',
     explanation:
@@ -926,7 +926,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 20,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Compliance Documentation',
     text: 'Do you have an Acceptable Use Policy that details the permissible use of company IT resources?',
     explanation:
@@ -972,7 +972,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 21,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Compliance Documentation',
     text: 'Are your data handling and privacy practices compliant with relevant regulations (e.g., GDPR, NDPR)?',
     explanation:
@@ -1018,7 +1018,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 22,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Cyber Security Implementations',
     text: 'Do you use an Intrusion Detection System (IDS) or Intrusion Prevention System (IPS)?',
     explanation:
@@ -1064,7 +1064,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 23,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Cyber Security Implementations',
     text: 'Have you implemented a Security Information and Event Management (SIEM) system?',
     explanation:
@@ -1113,7 +1113,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 24,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Cyber Security Implementations',
     text: 'Is two-factor or multi-factor authentication (2FA/MFA) required for accessing critical systems?',
     explanation:
@@ -1162,7 +1162,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 25,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Cyber Security Implementations',
     text: 'Is sensitive data encrypted both when it is stored (at rest) and when it is transmitted (in transit)?',
     explanation:
@@ -1210,7 +1210,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 26,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Cyber Security Implementations',
     text: 'Do you conduct regular vulnerability scans or penetration tests of your IT infrastructure?',
     explanation:
@@ -1257,7 +1257,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 27,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Cyber Security Implementations',
     text: 'Do employees receive regular cybersecurity awareness training?',
     explanation:
@@ -1306,7 +1306,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 28,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Cyber Security Implementations',
     text: 'Is there a process for securely disposing of old hardware and data?',
     explanation:
@@ -1353,7 +1353,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 29,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Cyber Security Implementations',
     text: 'Do you have a system in place for managing and applying security patches in a timely manner?',
     explanation:
@@ -1402,7 +1402,7 @@ export const fullQuestionnaireData = [
   },
   {
     id: 30,
-    assessment_name: 'Standard ITIVA Assessment',
+    assessment_name: 'Standard Net Triad Assessment',
     category: 'Cyber Security Implementations',
     text: 'Is access to sensitive data and systems restricted based on the principle of least privilege?',
     explanation:
