@@ -6,7 +6,7 @@ const emit = defineEmits(['logout']);
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
             <div class="flex items-center space-x-8">
-                <div class="text-2xl font-bold text-gray-800">IT<span class="text-blue-600">I</span>VA <span class="text-sm font-normal text-red-600">Admin</span></div>
+                <div class="text-2xl font-bold text-gray-800">N<span class="text-blue-600">E</span>T TR<span class="text-blue-600">I</span>AD <span class="text-sm font-normal text-red-600">Admin</span></div>
                 <nav class="hidden md:flex items-center space-x-6">
                     <RouterLink to="/admin/dashboard" class="text-gray-600 hover:text-blue-600 transition-colors">Dashboard</RouterLink>
                     <RouterLink to="/admin/questionnaire" class="text-gray-600 hover:text-blue-600 transition-colors">Edit Questionnaire</RouterLink>

@@ -16,6 +16,22 @@ import html2canvas from 'html2canvas'
 // Apply the autotable plugin to the jsPDF constructor
 applyPlugin(jsPDF)
 
+const categoryAbbreviations = {
+  'Website Strength': 'Website',
+  'Devices & Network': 'Devices',
+  'Compliance Documentation': 'Compliance',
+  'Cyber Security Implementations': 'Cyber Security',
+  'Access Management': 'Access Mgt.',
+  'Data Protection': 'Data Protect.',
+  'Infrastructure Security': 'Infra. Security',
+  'Data Governance': 'Data Gov.',
+  'Operational Compliance': 'Ops Compliance',
+  'IT Configuration': 'IT Config',
+  'User Preferences': 'User Prefs',
+}
+
+const abbreviateCategory = (name) => categoryAbbreviations[name] || name
+
 const router = useRouter()
 const route = useRoute()
 
@@ -162,11 +178,26 @@ function createOrUpdateChart(data, canvasId = 'reportRadarChart') {
     pdfRadarChartInstance.destroy()
   }
 
+  // Plugin to draw a white background. This is crucial for JPEG conversion.
+  const backgroundPlugin = {
+    id: 'customCanvasBackgroundColor',
+    beforeDraw: (chart, args, options) => {
+      const { ctx } = chart
+      ctx.save()
+      ctx.globalCompositeOperation = 'destination-over'
+      ctx.fillStyle = options.color || '#ffffff'
+      ctx.fillRect(0, 0, chart.width, chart.height)
+      ctx.restore()
+    },
+  }
+
   const { scores } = data
-  const labels = scores.categories.map((c) => c.name)
+  const labels = scores.categories.map((c) => abbreviateCategory(c.name)) // Abbreviate labels
   const chartData = scores.categories.map((c) => c.score)
 
-  const chart = new Chart(ctx, {
+  const chart = new Chart(
+    ctx,
+    {
     type: 'radar',
     data: {
       labels: labels,
@@ -188,12 +219,23 @@ function createOrUpdateChart(data, canvasId = 'reportRadarChart') {
         r: {
           suggestedMin: 0,
           suggestedMax: 100,
-          pointLabels: { font: { size: canvasId === 'pdfRadarChart' ? 18 : 14 } },
+            pointLabels: {
+              font: { size: canvasId === 'pdfRadarChart' ? 16 : 12, weight: 'bold' }, // Adjusted size
+              color: '#1f2937', // gray-800
+            },
+            grid: { color: '#e5e7eb' }, // gray-200
+            angleLines: { color: '#d1d5db' }, // gray-300
+            ticks: {
+              backdropColor: 'rgba(255, 255, 255, 0.75)', // Make ticks more readable
+              color: '#4b5563', // gray-600
+            },
         },
       },
-      plugins: { legend: { display: false } },
+        plugins: { legend: { display: false }, customCanvasBackgroundColor: { color: 'white' } },
     },
-  })
+      plugins: [backgroundPlugin],
+    }, // Register the plugin
+  )
 
   // Only store the main chart instance.
   if (canvasId === 'reportRadarChart') {
@@ -347,7 +389,7 @@ async function downloadReportAsPDF() {
     // Manually construct the "Generated..." line to bold a part of it
     const generatedText = `Generated `
     const reportNameText = `${reportData.value.name} Report`
-    const restOfText = ` on ${generatedDate.value} by ITIVA`
+    const restOfText = ` on ${generatedDate.value} by NET TRIAD`
     pdf.text(generatedText, margin, y)
     const generatedTextWidth = pdf.getStringUnitWidth(generatedText) * pdf.getFontSize()
     pdf.setFont(undefined, 'bold')
@@ -481,10 +523,10 @@ async function downloadReportAsPDF() {
 
     // Radar Chart
     const chartCanvas = document.getElementById('pdfRadarChart')
-    const chartImg = chartCanvas.toDataURL('image/png')
+    const chartImg = chartCanvas.toDataURL('image/jpeg', 0.9) // Use JPEG with 90% quality for smaller file size
     const chartWidth = col1Width + 40 // Make chart slightly larger
     const chartHeight = (chartCanvas.height * chartWidth) / chartCanvas.width
-    pdf.addImage(chartImg, 'PNG', col2X, sectionStartY - 10, chartWidth, chartHeight)
+    pdf.addImage(chartImg, 'JPEG', col2X, sectionStartY - 10, chartWidth, chartHeight)
 
     // --- 2. Use jsPDF-AutoTable to generate the recommendations table ---
     if (reportData.value.recommendations && reportData.value.recommendations.length > 0) {
@@ -534,7 +576,7 @@ async function downloadReportAsPDF() {
       })
     }
 
-    pdf.save(`ITIVA_Report_${reportData.value.name}.pdf`)
+    pdf.save(`NET_TRIAD_Report_${reportData.value.name}.pdf`)
   } catch (error) {
     console.error('Failed to generate PDF:', error)
   } finally {
@@ -630,25 +672,25 @@ onMounted(() => {
               <p class="text-sm text-gray-300">
                 Generated
                 <span class="font-bold text-white">{{ reportData.name }} Report</span> on
-                {{ generatedDate }} by ITIVA
+                {{ generatedDate }} by NET TRIAD
               </p>
               <p class="text-sm text-gray-300">For: {{ companyNameToDisplay }}</p>
             </div>
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2 sm:space-x-4">
               <button
                 @click="goBack"
-                class="flex cursor-pointer items-center space-x-2 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700 transition pdf-hide"
+                class="flex cursor-pointer items-center px-3 py-2 sm:px-4 bg-gray-600 rounded-lg hover:bg-gray-700 transition pdf-hide"
               >
                 <BackIcon />
-                <span>Back</span>
+                <span class="hidden sm:inline ml-2">Back</span>
               </button>
               <button
                 @click="downloadReportAsPDF"
                 :disabled="isDownloading"
-                class="flex cursor-pointer items-center space-x-2 px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 pdf-hide"
+                class="flex cursor-pointer items-center px-3 py-2 sm:px-4 bg-blue-600 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 pdf-hide"
               >
                 <DownloadIcon />
-                <span>{{ isDownloading ? '...' : 'Download' }}</span>
+                <span class="hidden sm:inline ml-2">{{ isDownloading ? '...' : 'Download' }}</span>
               </button>
             </div>
           </header>
@@ -761,7 +803,7 @@ onMounted(() => {
         </div>
       </div>
     </div>
-    <AppFooter v-if="!isAdminView" />
+    <AppFooter />
 
     <!-- Hidden full report for PDF generation -->
     <div class="pdf-only" ref="fullReportForPdf">
@@ -772,7 +814,7 @@ onMounted(() => {
             <p class="text-xl text-gray-300">
               Generated
               <span class="font-bold text-white">{{ reportData.name }} Report</span> on
-              {{ generatedDate }} by ITIVA
+              {{ generatedDate }} by NET TRIAD
             </p>
             <p class="text-xl text-gray-300">
               For: {{ authStore.currentUser?.companyName || 'Your Business' }}
@@ -783,7 +825,7 @@ onMounted(() => {
               <h2 class="text-4xl font-bold text-gray-800 mb-6">Executive Summary</h2>
               <p class="text-2xl text-gray-600 leading-relaxed" v-html="summary"></p>
             </section>
-            <section class="grid grid-cols-1 md:grid-cols-2 gap-12 mb-8 pb-8 border-b items-center">
+            <section class="grid grid-cols-2 gap-12 mb-8 pb-8 border-b items-center">
               <div>
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Score Breakdown</h2>
                 <div class="space-y-4">
@@ -807,7 +849,7 @@ onMounted(() => {
                   </div>
                 </div>
               </div>
-              <div class="w-full h-64 md:h-auto">
+              <div class="w-full h-[28rem]">
                 <canvas id="pdfRadarChart"></canvas>
               </div>
             </section>

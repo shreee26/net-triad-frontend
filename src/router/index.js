@@ -59,7 +59,7 @@ const router = createRouter({
       meta: { showHeaderAndFooter: false }, // Admin pages use their own header
     },
     {
-      path: '/admin/questionnaire',
+      path: '/admin/questionnaire/:questionnaireId',
       name: 'adminQuestionnaire',
       component: EditQuestionnairePage,
       meta: { showHeaderAndFooter: false },

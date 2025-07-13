@@ -4,8 +4,8 @@ import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAssessmentStore } from '@/stores/assessment'
 import { useReportsStore } from '@/stores/reports'
+import { useQuestionnairesStore } from '@/stores/questionnaires'
 import { runApplicationTests, validateQuestionnaireData } from '@/utils/testUtils'
-import { fullQuestionnaireData } from '@/api/mockData'
 
 const props = defineProps({
   show: {
@@ -20,6 +20,7 @@ const emit = defineEmits(['close'])
 const authStore = useAuthStore()
 const assessmentStore = useAssessmentStore()
 const reportsStore = useReportsStore()
+const questionnairesStore = useQuestionnairesStore()
 
 // Test state
 const testResults = ref(null)
@@ -37,7 +38,7 @@ const runAllTests = async () => {
       authStore,
       assessmentStore,
       reportsStore,
-      questions: fullQuestionnaireData,
+      questions: questionnairesStore.allQuestions,
       router: null, // We'll test router separately
     }
 
@@ -77,7 +78,7 @@ const runAdditionalTests = async () => {
 
   // Test questionnaire data validation
   try {
-    const questionnaireValidation = validateQuestionnaireData(fullQuestionnaireData)
+    const questionnaireValidation = validateQuestionnaireData(questionnairesStore.allQuestions)
     additionalTests.push({
       name: 'Questionnaire Data Validation',
       result: questionnaireValidation.isValid ? 'PASS' : 'FAIL',

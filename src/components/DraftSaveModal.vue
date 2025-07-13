@@ -75,10 +75,10 @@ watch(
   <transition name="modal-fade">
     <div
       v-if="show"
-      class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50"
+      class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center px-3 sm:p-4 z-50"
     >
       <div
-        class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full relative transform transition-all duration-300 scale-100 opacity-100"
+        class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm sm:max-w-md relative transform transition-all duration-300 scale-100 opacity-100"
       >
         <!-- Close button -->
         <button
@@ -144,7 +144,7 @@ watch(
           <button
             @click="handleSave"
             :disabled="isSaving"
-            class="flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            class="flex-1 cursor-pointer flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <svg
               v-if="isSaving"
@@ -181,7 +181,7 @@ watch(
           <button
             v-if="discardable"
             @click="handleDiscard"
-            class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+            class="flex-1 cursor-pointer px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
           >
             <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
