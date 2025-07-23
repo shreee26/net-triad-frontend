@@ -31,6 +31,7 @@ const targetAssessmentType = ref('')
 const pendingNavigation = ref(null)
 const reportNameInput = ref(null) // Template ref for the report name input
 const isNavigatingAfterSubmit = ref(false) // Flag to bypass the leave guard on successful submission
+const activeTooltip = ref(null) // For tap-to-show tooltips on mobile
 
 // Enhanced UX states
 const isSubmitting = ref(false) // Used for the final submission button
@@ -385,12 +386,14 @@ function resetStateAndStartNewDraft(type) {
     })
   answers.value = questions.value.reduce((acc, q) => ({ ...acc, [q.id]: null }), {})
   currentQuestionIndex.value = 0
+  activeTooltip.value = null // Reset tooltip state
   assessmentStore.startDraft(type, JSON.parse(JSON.stringify(questions.value)))
 }
 
 function nextQuestion() {
   if (!isLastQuestion.value) {
     currentQuestionIndex.value++
+    activeTooltip.value = null // Close tooltip on navigation
     saveDraftProgress()
   }
 }
@@ -398,12 +401,14 @@ function nextQuestion() {
 function prevQuestion() {
   if (!isFirstQuestion.value) {
     currentQuestionIndex.value--
+    activeTooltip.value = null // Close tooltip on navigation
     saveDraftProgress()
   }
 }
 
 function selectAnswer(option) {
   answers.value[currentQuestion.value.id] = option // option is now an object
+  activeTooltip.value = null // Close tooltip on selection
   saveDraftProgress()
   setTimeout(() => {
     if (!isLastQuestion.value) {
@@ -432,7 +437,7 @@ async function handleReportNameSubmission() {
     showToast(
       `Please answer all questions to generate a report. You have ${unansweredQuestions.length} unanswered question(s).`,
       'error',
-      3000,
+      4000,
     )
     // For better UX, navigate the user to the first unanswered question.
     const firstUnansweredIndex = questions.value.findIndex(
@@ -494,6 +499,14 @@ async function handleReportNameSubmission() {
     isNavigatingAfterSubmit.value = false
     isSubmitting.value = false
     showSuccessModal.value = false
+  }
+}
+
+function toggleTooltip(tooltipId) {
+  if (activeTooltip.value === tooltipId) {
+    activeTooltip.value = null // Close if already open
+  } else {
+    activeTooltip.value = tooltipId // Open the new one, closing any other
   }
 }
 
@@ -633,7 +646,7 @@ function handleKeyboardShortcuts(event) {
           <div class="mt-2">
             <div
               v-if="showKeyboardHelp"
-              class="mt-2 p-3 bg-gray-50 rounded-lg text-xs text-gray-600"
+              class="hidden md:block mt-2 p-3 bg-gray-50 rounded-lg text-xs text-gray-600"
             >
               <p class="font-medium mb-1">Keyboard shortcuts:</p>
               <ul class="space-y-1">
@@ -695,24 +708,33 @@ function handleKeyboardShortcuts(event) {
                   {{ currentQuestion.text }}
                 </h2>
                 <div class="relative group flex-shrink-0">
-                  <svg
-                    class="w-6 h-6 text-gray-400 cursor-pointer group-hover:text-blue-600 transition-colors"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
+                  <button
+                    type="button"
+                    @click.stop="toggleTooltip('question')"
+                    @touchend.prevent="toggleTooltip('question')"
+                    class="focus:outline-none"
+                    aria-label="Show question explanation"
                   >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    ></path>
-                  </svg>
+                    <svg
+                      class="w-6 h-6 text-gray-400 cursor-pointer group-hover:text-blue-600 transition-colors"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden="true"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      ></path>
+                    </svg>
+                  </button>
                   <div
                     class="absolute bottom-full right-0 mb-2 w-64 sm:w-72 p-3 text-sm text-white bg-gray-800 rounded-lg opacity-0 group-hover:opacity-95 transition-opacity duration-300 pointer-events-none z-10"
                     role="tooltip"
+                    :class="{ 'opacity-95': activeTooltip === 'question' }"
                   >
                     {{ currentQuestion.explanation }}
                   </div>
@@ -740,25 +762,34 @@ function handleKeyboardShortcuts(event) {
                 >
                   <span class="flex-1 mr-4">{{ option.text }}</span>
                   <div class="relative group flex-shrink-0">
-                    <svg
-                      class="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition-colors"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                      aria-hidden="true"
+                    <button
+                      type="button"
+                      @click.stop="toggleTooltip(`option-${index}`)"
+                      @touchend.prevent="toggleTooltip(`option-${index}`)"
+                      class="focus:outline-none"
+                      :aria-label="`Show explanation for option ${index + 1}`"
                     >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      ></path>
-                    </svg>
+                      <svg
+                        class="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition-colors"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-hidden="true"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        ></path>
+                      </svg>
+                    </button>
                     <div
                       :id="`explanation-${currentQuestion.id}-${index}`"
                       class="absolute bottom-full right-0 mb-2 w-64 sm:w-72 p-3 text-sm text-white bg-gray-800 rounded-lg opacity-0 group-hover:opacity-95 transition-opacity duration-300 pointer-events-none z-10"
                       role="tooltip"
+                      :class="{ 'opacity-95': activeTooltip === `option-${index}` }"
                     >
                       {{ option.explanation }}
                     </div>

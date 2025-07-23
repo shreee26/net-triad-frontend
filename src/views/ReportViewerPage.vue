@@ -198,27 +198,27 @@ function createOrUpdateChart(data, canvasId = 'reportRadarChart') {
   const chart = new Chart(
     ctx,
     {
-    type: 'radar',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          data: chartData,
-          backgroundColor: 'rgba(59, 130, 246, 0.2)',
-          borderColor: 'rgba(59, 130, 246, 1)',
-          borderWidth: 2,
-        },
-      ],
-    },
-    options: {
-      animation: canvasId === 'pdfRadarChart' ? false : undefined, // Disable animation for PDF capture
-      // Add willReadFrequently hint for performance
-      context: ctx.getContext('2d', { willReadFrequently: true }),
-      maintainAspectRatio: false,
-      scales: {
-        r: {
-          suggestedMin: 0,
-          suggestedMax: 100,
+      type: 'radar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            data: chartData,
+            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+            borderColor: 'rgba(59, 130, 246, 1)',
+            borderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        animation: canvasId === 'pdfRadarChart' ? false : undefined, // Disable animation for PDF capture
+        // Add willReadFrequently hint for performance
+        context: ctx.getContext('2d', { willReadFrequently: true }),
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            suggestedMin: 0,
+            suggestedMax: 100,
             pointLabels: {
               font: { size: canvasId === 'pdfRadarChart' ? 16 : 12, weight: 'bold' }, // Adjusted size
               color: '#1f2937', // gray-800
@@ -229,10 +229,10 @@ function createOrUpdateChart(data, canvasId = 'reportRadarChart') {
               backdropColor: 'rgba(255, 255, 255, 0.75)', // Make ticks more readable
               color: '#4b5563', // gray-600
             },
+          },
         },
-      },
         plugins: { legend: { display: false }, customCanvasBackgroundColor: { color: 'white' } },
-    },
+      },
       plugins: [backgroundPlugin],
     }, // Register the plugin
   )

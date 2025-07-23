@@ -563,7 +563,7 @@ const scrollToTop = () => {
             </button>
           </div>
           <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table class="hidden md:table min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
                   <th
@@ -643,6 +643,100 @@ const scrollToTop = () => {
                 </tr>
               </tbody>
             </table>
+            <!-- Mobile Card View for Questionnaires -->
+            <div class="md:hidden space-y-3 p-1">
+              <div
+                v-for="q in questionnaires"
+                :key="q.id"
+                class="bg-white p-4 rounded-lg shadow-md border border-gray-200"
+              >
+                <div class="flex justify-between items-start">
+                  <div class="flex-grow pr-4">
+                    <h3 class="font-bold text-gray-800">{{ q.name }}</h3>
+                    <p class="text-sm text-gray-500">{{ q.questionsCount }} questions</p>
+                    <p class="text-xs text-gray-400 mt-1">
+                      Updated: {{ q.lastUpdated.replace('T', ' ').substring(0, 10) }}
+                    </p>
+                  </div>
+                  <div class="flex items-center space-x-2 flex-shrink-0">
+                    <button
+                      @click="editQuestionnaire(q)"
+                      class="p-2 text-indigo-600 hover:text-indigo-800 transition-colors rounded-full hover:bg-gray-100"
+                      title="Edit Questionnaire"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"
+                        />
+                        <path
+                          fill-rule="evenodd"
+                          d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      @click="promptDuplicate(q)"
+                      class="p-2 text-blue-600 hover:text-blue-800 transition-colors rounded-full hover:bg-gray-100"
+                      title="Duplicate Questionnaire"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      @click="promptDelete(q)"
+                      class="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-gray-100"
+                      title="Delete Questionnaire"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="mt-3">
+                  <span
+                    :class="[
+                      'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
+                      q.status === 'Active'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-800',
+                    ]"
+                  >
+                    {{ q.status }}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </div>
