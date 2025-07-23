@@ -12,6 +12,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  scrollContainer: {
+    type: Object, // HTMLElement
+    default: null,
+  },
 })
 
 const emit = defineEmits(['remove-question', 'update:questions', 'update:question'])
@@ -119,6 +123,72 @@ function updateOptionField(question, optionIndex, field, value) {
   const updatedQuestion = { ...question, options: newOptions }
   emit('update:question', updatedQuestion)
 }
+
+// --- Mobile Drag-to-Scroll Logic ---
+let animationFrameId = null
+let scrollSpeed = 0
+
+/**
+ * Continuously scrolls the container based on the current scrollSpeed.
+ * Uses requestAnimationFrame for smooth, performant animation.
+ */
+function scrollLoop() {
+  if (scrollSpeed !== 0 && props.scrollContainer) {
+    props.scrollContainer.scrollBy(0, scrollSpeed)
+    animationFrameId = requestAnimationFrame(scrollLoop)
+  } else {
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId)
+    }
+    animationFrameId = null
+  }
+}
+
+/**
+ * Calculates the required scroll speed when a dragged item enters the
+ * "hot zones" at the top or bottom of the scrollable container.
+ * @param {object} evt The move event from vue-draggable-next.
+ */
+function onDragMove(evt) {
+  const container = props.scrollContainer
+  if (!container) return
+
+  const originalEvent = evt.originalEvent
+  // Handle both mouse and touch events to get the Y coordinate
+  const clientY = originalEvent.touches ? originalEvent.touches[0].clientY : originalEvent.clientY
+
+  const rect = container.getBoundingClientRect()
+  const sensitivity = 100 // The "hot zone" size in pixels from the top/bottom edge
+  const maxSpeed = 20 // Maximum scroll speed in pixels per frame
+
+  if (clientY < rect.top + sensitivity) {
+    // Scrolling up
+    const distance = rect.top + sensitivity - clientY
+    scrollSpeed = -maxSpeed * (distance / sensitivity)
+  } else if (clientY > rect.bottom - sensitivity) {
+    // Scrolling down
+    const distance = clientY - (rect.bottom - sensitivity)
+    scrollSpeed = maxSpeed * (distance / sensitivity)
+  } else {
+    scrollSpeed = 0
+  }
+
+  // If scrolling is needed and the loop isn't running, start it.
+  if (scrollSpeed !== 0 && !animationFrameId) {
+    animationFrameId = requestAnimationFrame(scrollLoop)
+  }
+}
+
+/**
+ * Stops the scrolling loop when the drag operation ends.
+ */
+function onDragEnd() {
+  scrollSpeed = 0
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId)
+    animationFrameId = null
+  }
+}
 </script>
 
 <template>
@@ -173,6 +243,8 @@ function updateOptionField(question, optionIndex, field, value) {
             class="space-y-4"
             handle=".drag-handle"
             name="question-list"
+            @move="onDragMove"
+            @end="onDragEnd"
           >
             <div
               v-for="q in paginatedQuestions"

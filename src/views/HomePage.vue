@@ -30,9 +30,69 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('scroll', handleScroll)
 })
-// Reactive reference for the list of mock rankings
-// Limiting to 10 companies as requested
-const rankings = ref(mockRankings.slice(0, 10))
+
+const authStore = useAuthStore()
+const reportsStore = useReportsStore()
+const questionnairesStore = useQuestionnairesStore()
+
+const rankings = computed(() => {
+  // 1. Adjust mock businesses to ensure they have a B grade or higher
+  const adjustedMockBusinesses = mockRankings.map((biz) => {
+    let score = biz.score
+    // If score is C grade (65-74) or D/E grade (<65), bump it to a B or A grade.
+    if (score < 75) {
+      // Randomly assign a B or A grade score (75-95)
+      score = 75 + Math.random() * 20
+    }
+    return {
+      ...biz,
+      score: score,
+      id: `mock-${biz.rank}`,
+      isRealUser: false,
+    }
+  })
+
+  // 2. Get real users who qualify
+  const activeQuestionnaireNames = questionnairesStore.questionnaires
+    .filter((q) => q.status === 'Active')
+    .map((q) => q.name)
+
+  const totalActiveQuestionnaires = activeQuestionnaireNames.length
+  const users = authStore.users.filter((u) => !u.isAdmin)
+
+  const qualifiedUserBusinesses = users
+    .map((user) => {
+      const result = reportsStore.calculateUserAverageScoreAndReports(
+        user.id,
+        activeQuestionnaireNames,
+      )
+      if (!result) return null
+
+      const { averageScore, latestReports } = result
+
+      // Conditions: Must have completed ALL active questionnaires and have a score of 75+
+      if (latestReports.length < totalActiveQuestionnaires || averageScore < 75) {
+        return null
+      }
+
+      return {
+        id: `user-${user.id}`,
+        name: user.companyName || user.userFullName,
+        location: user.city || 'N/A',
+        type: user.businessType || 'N/A',
+        score: averageScore,
+        isRealUser: true,
+      }
+    })
+    .filter(Boolean) // Remove nulls
+
+  // 3. Combine, sort, and rank
+  const combined = [...adjustedMockBusinesses, ...qualifiedUserBusinesses]
+  combined.sort((a, b) => b.score - a.score)
+  // Take only the top 10 businesses for the rankings
+  const top10 = combined.slice(0, 10)
+  return top10.map((biz, index) => ({ ...biz, rank: index + 1 }))
+})
 
 // --- Grading Logic ---
 /**
@@ -112,6 +172,10 @@ const rankingsByType = computed(() => {
   )
 })
 
+// // Initialize the auth store
+// const authStore = useAuthStore()
+// const assessmentStore = useAssessmentStore()
+
 /**
  * Navigates the user to the login page to start an assessment.
  */
@@ -119,7 +183,6 @@ function navigateToLogin() {
   router.push('/login')
 }
 </script>
-
 <template>
   <div class="font-sans">
     <!-- Hero Section: Grand, eye-catching introduction with gradient background and shadow -->

@@ -163,6 +163,36 @@ const activeAssessments = computed(() =>
     })),
 )
 
+const draftNameMapping = computed(() => {
+  // Get drafts and sort them by creation date (oldest first) to ensure consistent numbering
+  const sortedDrafts = reportsForDisplay.value
+    .filter((r) => r.isDraft)
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+
+  // Create a map of draft.id -> sequential name
+  const map = new Map()
+  sortedDrafts.forEach((draft, index) => {
+    map.set(draft.id, `Draft Assessment ${index + 1}`)
+  })
+  return map
+})
+
+function getMobileDisplayName(report) {
+  let displayName
+  // If it's a draft, use the sequential name from the map
+  if (report.isDraft) {
+    displayName = draftNameMapping.value.get(report.id) || report.name
+  } else {
+    displayName = report.name
+  }
+
+  // Apply truncation logic for long names
+  if (displayName.length > 25) {
+    return displayName.substring(0, 22) + '...'
+  }
+
+  return displayName
+}
 // --- Grading Logic (copied for consistency) ---
 function getGrade(score) {
   if (score >= 85) return 'A'
@@ -408,23 +438,23 @@ function closeSystemTestPanel() {
     <!-- Main Content Area: Centered, padded, responsive -->
     <main ref="mainContent" class="flex-grow overflow-y-auto">
       <div class="container mx-auto px-6 py-8">
-      <!-- Welcome Heading - uses authStore.userFullName for better display -->
-      <h1 v-if="!isAdminView" class="text-3xl font-bold text-gray-900 mb-6">
-        Welcome, {{ authStore.userFullName }}!
-      </h1>
+        <!-- Welcome Heading - uses authStore.userFullName for better display -->
+        <h1 v-if="!isAdminView" class="text-3xl font-bold text-gray-900 mb-6">
+          Welcome, {{ authStore.userFullName }}!
+        </h1>
 
-      <!-- Dashboard Overview Cards: Grid layout for key metrics -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <!-- Total Assessments Card -->
-        <div class="bg-white rounded-lg shadow p-6 text-center">
-          <h3 class="text-xl font-semibold text-gray-700 mb-2">Total Assessments</h3>
-          <p class="text-5xl font-extrabold text-blue-600">{{ completedReports.length }}</p>
-        </div>
-        <!-- Average Score Card -->
-        <div class="bg-white rounded-lg shadow p-6 text-center">
-          <h3 class="text-xl font-semibold text-gray-700 mb-2">Average Score</h3>
+        <!-- Dashboard Overview Cards: Grid layout for key metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <!-- Total Assessments Card -->
+          <div class="bg-white rounded-lg shadow p-6 text-center">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Total Assessments</h3>
+            <p class="text-5xl font-extrabold text-blue-600">{{ completedReports.length }}</p>
+          </div>
+          <!-- Average Score Card -->
+          <div class="bg-white rounded-lg shadow p-6 text-center">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Average Score</h3>
             <div class="flex items-center justify-center">
-          <p class="text-5xl font-extrabold text-green-600">{{ averageScore }}</p>
+              <p class="text-5xl font-extrabold text-green-600">{{ averageScore }}</p>
               <div v-if="scoreTrend !== 'neutral'" class="ml-2">
                 <svg
                   v-if="scoreTrend === 'up'"
@@ -452,81 +482,253 @@ function closeSystemTestPanel() {
                 </svg>
               </div>
             </div>
-        </div>
-        <!-- Draft Assessments Card -->
-        <div class="bg-white rounded-lg shadow p-6 text-center">
-          <h3 class="text-xl font-semibold text-gray-700 mb-2">Draft Assessments</h3>
-          <p class="text-5xl font-extrabold text-yellow-600">{{ draftReports.length }}</p>
-        </div>
-      </div>
-
-      <!-- Recent Reports Section: Displays a table of user's past reports -->
-      <section class="bg-white rounded-lg shadow p-6 mb-8">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-2xl font-semibold text-gray-800">Your Recent Reports</h2>
-          <div class="w-full md:w-1/3">
-            <input
-              type="text"
-              v-model="searchQuery"
-              placeholder="Search reports by name..."
-              class="block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              aria-label="Search reports by name"
-            />
+          </div>
+          <!-- Draft Assessments Card -->
+          <div class="bg-white rounded-lg shadow p-6 text-center">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Draft Assessments</h3>
+            <p class="text-5xl font-extrabold text-yellow-600">{{ draftReports.length }}</p>
           </div>
         </div>
+
+        <!-- Recent Reports Section: Displays a table of user's past reports -->
+        <section class="bg-white rounded-lg shadow p-6 mb-8">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-semibold text-gray-800">Your Recent Reports</h2>
+            <div class="w-full md:w-1/3">
+              <input
+                type="text"
+                v-model="searchQuery"
+                placeholder="Search reports by name..."
+                class="block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                aria-label="Search reports by name"
+              />
+            </div>
+          </div>
 
           <div
             ref="reportsContainer"
             v-if="filteredReports.length > 0"
-            class="overflow-auto max-h-96 overflow-y-auto"
+            class="max-h-96 overflow-y-auto"
           >
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50 sticky top-0">
-              <tr>
-                <th
-                  scope="col"
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Report Name
-                </th>
-                <th
-                  scope="col"
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Date
-                </th>
-                <th
-                  scope="col"
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Score
-                </th>
-                <th
-                  scope="col"
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Grade
-                </th>
-                <th
-                  scope="col"
-                  class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Type
-                </th>
-                <th scope="col" class="relative px-4 py-3">
-                  <span class="sr-only">View</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="report in filteredReports" :key="report.id">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  <div class="flex items-center">
-                    <span>{{ report.name }}</span>
-                    <!-- Draft indicator -->
+            <!-- Desktop Table View -->
+            <table class="hidden md:table min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50 sticky top-0">
+                <tr>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Report Name
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Date
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Score
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Grade
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Type
+                  </th>
+                  <th scope="col" class="relative px-4 py-3">
+                    <span class="sr-only">View</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="report in filteredReports" :key="report.id">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <div class="flex items-center">
+                      <span>{{ report.name }}</span>
+                      <!-- Draft indicator -->
+                      <span
+                        v-if="report.isDraft"
+                        class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"
+                      >
+                        <svg
+                          class="w-3 h-3 mr-1"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          ></path>
+                        </svg>
+                        Draft
+                      </span>
+                      <!-- Continue assessment button for drafts -->
+                      <button
+                        v-if="report.isDraft && !isAdminView"
+                        @click="continueAssessment(report)"
+                        class="ml-2 text-gray-400 cursor-pointer hover:text-blue-600 transition-colors"
+                        title="Continue Assessment"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M13 7l5 5m0 0l-5 5m5-5H6"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ report.date.replace('T', ' ').substring(0, 16) }}
+                  </td>
+                  <td
+                    v-if="!report.isDraft"
+                    class="px-6 py-4 whitespace-nowrap text-sm font-bold"
+                    :class="getScoreColorClass(report.score)"
+                  >
+                    {{ report.score }}
+                  </td>
+                  <td v-else class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">--</td>
+                  <td
+                    v-if="!report.isDraft"
+                    class="px-6 py-4 whitespace-nowrap text-sm font-bold"
+                    :class="getGradeColorClass(getGrade(report.score))"
+                  >
+                    {{ getGrade(report.score) }}
+                  </td>
+                  <td v-else class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">--</td>
+                  <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ report.type }}
+                  </td>
+                  <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div class="flex items-center justify-end space-x-4">
+                      <!-- View Report button - only for completed reports -->
+                      <button
+                        v-if="!report.isDraft"
+                        @click="viewReport(report)"
+                        class="text-blue-600 hover:text-blue-900 transition-colors duration-200 cursor-pointer"
+                      >
+                        View Report
+                      </button>
+                      <!-- Delete button - only shown to the actual user, not in admin view -->
+                      <button
+                        v-if="!isAdminView"
+                        @click="promptDeleteReport(report.id)"
+                        class="text-red-500 hover:text-red-700 cursor-pointer transition-colors"
+                        :title="report.isDraft ? 'Delete Draft' : 'Delete Report'"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <!-- Mobile Card View -->
+            <div class="md:hidden space-y-3 p-1">
+              <div
+                v-for="report in filteredReports"
+                :key="report.id"
+                class="bg-white p-4 rounded-lg shadow-md border border-gray-200"
+              >
+                <div class="flex justify-between items-start">
+                  <div class="flex-grow pr-4">
+                    <h3 class="font-bold text-gray-800">
+                      {{ getMobileDisplayName(report) }}
+                    </h3>
+                    <p class="text-sm text-gray-500">{{ report.type }}</p>
+                    <p class="text-xs text-gray-400 mt-1">
+                      {{ report.date.replace('T', ' ').substring(0, 16) }}
+                    </p>
+                  </div>
+                  <div class="flex items-center space-x-3 flex-shrink-0">
+                    <button
+                      v-if="!report.isDraft"
+                      @click="viewReport(report)"
+                      class="text-blue-600 hover:text-blue-800 transition-colors"
+                      title="View Report"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M2.458 12C3.732 7.943 7.522 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7S3.732 16.057 2.458 12z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      v-if="!isAdminView"
+                      @click="promptDeleteReport(report.id)"
+                      class="text-red-500 hover:text-red-700 transition-colors"
+                      :title="report.isDraft ? 'Delete Draft' : 'Delete Report'"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="report.isDraft" class="mt-3">
+                  <div class="flex items-center justify-between">
                     <span
-                      v-if="report.isDraft"
-                      class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"
+                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"
                     >
                       <svg
                         class="w-3 h-3 mr-1"
@@ -543,16 +745,16 @@ function closeSystemTestPanel() {
                       </svg>
                       Draft
                     </span>
-                    <!-- Continue assessment button for drafts -->
                     <button
-                      v-if="report.isDraft && !isAdminView"
+                      v-if="!isAdminView"
                       @click="continueAssessment(report)"
-                      class="ml-2 text-gray-400 cursor-pointer hover:text-blue-600 transition-colors"
+                      class="flex items-center text-sm text-blue-600 font-semibold hover:text-blue-800 transition-colors"
                       title="Continue Assessment"
                     >
+                      Continue
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        class="h-4 w-4"
+                        class="h-4 w-4 ml-1"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -566,208 +768,173 @@ function closeSystemTestPanel() {
                       </svg>
                     </button>
                   </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {{ report.date.replace('T', ' ').substring(0, 16) }}
-                </td>
-                <td
+                </div>
+
+                <div
                   v-if="!report.isDraft"
-                  class="px-6 py-4 whitespace-nowrap text-sm font-bold"
-                  :class="getScoreColorClass(report.score)"
+                  class="mt-4 flex justify-around items-center text-center bg-gray-50 p-2 rounded-md"
                 >
-                  {{ report.score }}
-                </td>
-                <td v-else class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">--</td>
-                <td
-                  v-if="!report.isDraft"
-                  class="px-6 py-4 whitespace-nowrap text-sm font-bold"
-                  :class="getGradeColorClass(getGrade(report.score))"
-                >
-                  {{ getGrade(report.score) }}
-                </td>
-                <td v-else class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">--</td>
-                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {{ report.type }}
-                </td>
-                <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div class="flex items-center justify-end space-x-4">
-                    <!-- View Report button - only for completed reports -->
-                    <button
-                      v-if="!report.isDraft"
-                      @click="viewReport(report)"
-                      class="text-blue-600 hover:text-blue-900 transition-colors duration-200 cursor-pointer"
-                    >
-                      View Report
-                    </button>
-                    <!-- Delete button - only shown to the actual user, not in admin view -->
-                    <button
-                      v-if="!isAdminView"
-                      @click="promptDeleteReport(report.id)"
-                      class="text-red-500 hover:text-red-700 cursor-pointer transition-colors"
-                      :title="report.isDraft ? 'Delete Draft' : 'Delete Report'"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
+                  <div>
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Score</p>
+                    <p class="text-2xl font-bold" :class="getScoreColorClass(report.score)">
+                      {{ report.score }}
+                    </p>
                   </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <!-- Message if no reports are available -->
-        <div v-else class="text-center py-8 text-gray-500">
-          <p class="mb-4">
-            <span v-if="searchQuery && reportsStore.userReports.length > 0"
-              >No reports match your search.</span
+                  <div class="border-l h-10 border-gray-200"></div>
+                  <div>
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Grade</p>
+                    <p
+                      class="text-2xl font-bold"
+                      :class="getGradeColorClass(getGrade(report.score))"
+                    >
+                      {{ getGrade(report.score) }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Message if no reports are available -->
+          <div v-else class="text-center py-8 text-gray-500">
+            <p class="mb-4">
+              <span v-if="searchQuery && reportsStore.userReports.length > 0"
+                >No reports match your search.</span
+              >
+              <span v-else>No reports found. Start a new assessment to see your reports here!</span>
+            </p>
+            <button
+              @click="startNewAssessment"
+              class="bg-blue-600 cursor-pointer text-white font-semibold py-2 px-6 rounded-md hover:bg-blue-700 transition-colors duration-200"
             >
-            <span v-else>No reports found. Start a new assessment to see your reports here!</span>
-          </p>
-          <button
-            @click="startNewAssessment"
-            class="bg-blue-600 cursor-pointer text-white font-semibold py-2 px-6 rounded-md hover:bg-blue-700 transition-colors duration-200"
-          >
-            Start New Assessment
-          </button>
-        </div>
-      </section>
+              Start New Assessment
+            </button>
+          </div>
+        </section>
 
-      <!-- Quick Actions Section: Buttons for common tasks -->
-      <section v-if="!isAdminView" class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <!-- Start New Assessment Button -->
-          <button
-            @click="startNewAssessment"
-            class="flex cursor-pointer flex-col items-center justify-center p-6 bg-blue-50 rounded-lg shadow-sm hover:bg-blue-100 transition-colors duration-200"
-          >
-            <!-- Icon for New Assessment -->
-            <svg
-              class="w-12 h-12 text-blue-600 mb-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
+        <!-- Quick Actions Section: Buttons for common tasks -->
+        <section v-if="!isAdminView" class="bg-white rounded-lg shadow p-6">
+          <h2 class="text-2xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Start New Assessment Button -->
+            <button
+              @click="startNewAssessment"
+              class="flex cursor-pointer flex-col items-center justify-center p-6 bg-blue-50 rounded-lg shadow-sm hover:bg-blue-100 transition-colors duration-200"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M12 4v16m8-8H4"
-              ></path>
-            </svg>
-            <span class="text-lg font-medium text-blue-800">Start New Assessment</span>
-          </button>
-          <!-- Continue Draft Assessment Button - only show if there are drafts -->
-          <button
-            v-if="hasDrafts"
-            @click="continueAssessment(draftReports[0])"
-            class="flex flex-col cursor-pointer items-center justify-center p-6 bg-yellow-50 rounded-lg shadow-sm hover:bg-yellow-100 transition-colors duration-200"
-          >
-            <!-- Icon for Continue Assessment -->
-            <svg
-              class="w-12 h-12 text-yellow-600 mb-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
+              <!-- Icon for New Assessment -->
+              <svg
+                class="w-12 h-12 text-blue-600 mb-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M12 4v16m8-8H4"
+                ></path>
+              </svg>
+              <span class="text-lg font-medium text-blue-800">Start New Assessment</span>
+            </button>
+            <!-- Continue Draft Assessment Button - only show if there are drafts -->
+            <button
+              v-if="hasDrafts"
+              @click="continueAssessment(draftReports[0])"
+              class="flex flex-col cursor-pointer items-center justify-center p-6 bg-yellow-50 rounded-lg shadow-sm hover:bg-yellow-100 transition-colors duration-200"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M13 7l5 5m0 0l-5 5m5-5H6"
-              ></path>
-            </svg>
-            <span class="text-lg font-medium text-yellow-800">Continue Draft</span>
-          </button>
-          <!-- Manage Settings Button (now handled by dropdown) -->
-          <button
-            @click="goToLinkAccounts"
-            class="flex flex-col cursor-pointer items-center justify-center p-6 bg-green-50 rounded-lg shadow-sm hover:bg-green-100 transition-colors duration-200"
-          >
-            <!-- Icon for Settings/Link Accounts -->
-            <svg
-              class="w-12 h-12 text-green-600 mb-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
+              <!-- Icon for Continue Assessment -->
+              <svg
+                class="w-12 h-12 text-yellow-600 mb-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                ></path>
+              </svg>
+              <span class="text-lg font-medium text-yellow-800">Continue Draft</span>
+            </button>
+            <!-- Manage Settings Button (now handled by dropdown) -->
+            <button
+              @click="goToLinkAccounts"
+              class="flex flex-col cursor-pointer items-center justify-center p-6 bg-green-50 rounded-lg shadow-sm hover:bg-green-100 transition-colors duration-200"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.368 2.572-1.065z"
-              ></path>
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              ></path>
-            </svg>
-            <span class="text-lg font-medium text-green-800">Link Accounts</span>
-          </button>
-          <!-- Logout Button -->
-          <button
-            @click="logout"
-            class="flex flex-col cursor-pointer items-center justify-center p-6 bg-red-50 rounded-lg shadow-sm hover:bg-red-100 transition-colors duration-200"
-          >
-            <!-- Icon for Logout -->
-            <svg
-              class="w-12 h-12 text-red-600 mb-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
+              <!-- Icon for Settings/Link Accounts -->
+              <svg
+                class="w-12 h-12 text-green-600 mb-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.368 2.572-1.065z"
+                ></path>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                ></path>
+              </svg>
+              <span class="text-lg font-medium text-green-800">Link Accounts</span>
+            </button>
+            <!-- Logout Button -->
+            <button
+              @click="logout"
+              class="flex flex-col cursor-pointer items-center justify-center p-6 bg-red-50 rounded-lg shadow-sm hover:bg-red-100 transition-colors duration-200"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-              ></path>
-            </svg>
-            <span class="text-lg font-medium text-red-800">Logout</span>
-          </button>
+              <!-- Icon for Logout -->
+              <svg
+                class="w-12 h-12 text-red-600 mb-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                ></path>
+              </svg>
+              <span class="text-lg font-medium text-red-800">Logout</span>
+            </button>
 
-          <!-- System Test Panel Button (for development/testing) -->
-          <button
-            @click="openSystemTestPanel"
-            class="flex flex-col cursor-pointer items-center justify-center p-6 bg-purple-50 rounded-lg shadow-sm hover:bg-purple-100 transition-colors duration-200"
-          >
-            <!-- Icon for System Test -->
-            <svg
-              class="w-12 h-12 text-purple-600 mb-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
+            <!-- System Test Panel Button (for development/testing) -->
+            <button
+              @click="openSystemTestPanel"
+              class="flex flex-col cursor-pointer items-center justify-center p-6 bg-purple-50 rounded-lg shadow-sm hover:bg-purple-100 transition-colors duration-200"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              ></path>
-            </svg>
-            <span class="text-lg font-medium text-purple-800">System Test</span>
-          </button>
-        </div>
-      </section>
+              <!-- Icon for System Test -->
+              <svg
+                class="w-12 h-12 text-purple-600 mb-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                ></path>
+              </svg>
+              <span class="text-lg font-medium text-purple-800">System Test</span>
+            </button>
+          </div>
+        </section>
       </div>
     </main>
     <AppFooter />

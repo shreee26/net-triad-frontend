@@ -1,6 +1,6 @@
 <!-- src/views/EditQuestionnairePage.vue -->
 <script setup lang="ts">
-import { ref, watch, computed, inject, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, computed, inject, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuestionnairesStore } from '@/stores/questionnaires'
 import QuestionList from '@/components/admin/QuestionList.vue'
@@ -19,6 +19,19 @@ const showImportModal = ref(false)
 const importedQuestions = ref<any[]>([])
 const importMode = ref<'all' | 'sequence' | null>(null)
 const currentImportIndex = ref(0)
+
+// --- Landscape Mode State ---
+const isMobile = ref(false)
+const isPortrait = ref(false)
+const showLandscapeSuggestion = ref(false)
+const isLockedLandscape = ref(false)
+const showRotateTooltip = ref(false)
+let tooltipTimer: number | null = null
+
+// --- Undo/Redo State for Question Ordering ---
+const history = ref<any[]>([])
+const redoStack = ref<any[]>([])
+const MAX_HISTORY_SIZE = 20
 
 // --- End Import State ---
 
@@ -233,6 +246,15 @@ function addQuestion() {
  * @param {Array} newQuestionOrder The newly ordered array of questions.
  */
 function updateQuestionOrder(newQuestionOrder) {
+  // Save the current state to history before applying the change.
+  history.value.push(JSON.parse(JSON.stringify(questions.value)))
+  // Clear the redo stack as a new action has been taken.
+  redoStack.value = []
+  // Keep history size manageable.
+  if (history.value.length > MAX_HISTORY_SIZE) {
+    history.value.shift()
+  }
+
   const renumberedQuestions = newQuestionOrder.map((q, index) => ({
     ...q,
     id: index + 1, // Re-assign the ID based on the new index (1-based)
@@ -604,9 +626,124 @@ async function saveQuestionnaire() {
 }
 
 /**
+ * Requests the browser to lock the screen orientation to landscape.
+ * This is recommended for a better editing experience on mobile.
+ */
+async function requestLandscape() {
+  try {
+    // Many browsers require the page to be in fullscreen to lock orientation.
+    if (document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen()
+    }
+
+    if (screen.orientation && screen.orientation.lock) {
+      await screen.orientation.lock('landscape')
+      isLockedLandscape.value = true
+      showLandscapeSuggestion.value = false
+    } else {
+      throw new Error('The Screen Orientation API is not supported by this browser.')
+    }
+  } catch (error: any) {
+    console.error('Could not lock screen orientation:', error)
+    let message = 'Could not switch to landscape. Please rotate your device manually.'
+    if (error.name === 'NotSupportedError') {
+      message =
+        'Rotation lock requires a secure (HTTPS) connection or is not supported in this context.'
+    } else if (error.name === 'SecurityError') {
+      message = 'Switching to landscape must be initiated by a user action, like a tap.'
+    } else if (error.message.includes('not supported')) {
+      message = error.message
+    }
+    showToast(message, 'error', 5000)
+    // Hide the suggestion even if it fails, to not block the user.
+    showLandscapeSuggestion.value = false
+  }
+}
+
+/**
+ * Unlocks the screen orientation, returning control to the device's default behavior.
+ * This is called when navigating away from the page.
+ */
+function unlockOrientation() {
+  if (isLockedLandscape.value && screen.orientation && screen.orientation.unlock) {
+    try {
+      screen.orientation.unlock()
+      isLockedLandscape.value = false
+    } catch (error) {
+      console.error('Could not unlock screen orientation:', error)
+    }
+  }
+  // If we entered fullscreen, we should exit it when unlocking.
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch((err) => {
+      console.error('Error exiting fullscreen:', err)
+    })
+  }
+}
+
+function checkOrientation() {
+  isMobile.value = window.innerWidth < 768 // Simple check for mobile-sized screens
+  isPortrait.value = window.matchMedia('(orientation: portrait)').matches
+
+  // If user manually rotates to landscape, hide the modal.
+  if (!isPortrait.value) {
+    showLandscapeSuggestion.value = false
+  }
+}
+
+function startTooltipTimer() {
+  if (tooltipTimer) clearTimeout(tooltipTimer)
+  // Show tooltip after a short delay on long press
+  tooltipTimer = window.setTimeout(() => {
+    showRotateTooltip.value = true
+  }, 500)
+}
+
+function cancelTooltipTimer() {
+  if (tooltipTimer) clearTimeout(tooltipTimer)
+  showRotateTooltip.value = false
+}
+
+/**
+ * Closes the landscape suggestion modal without taking action.
+ */
+function closeLandscapeSuggestion() {
+  showLandscapeSuggestion.value = false
+}
+
+/**
+ * Undoes the last change to the question order.
+ */
+function undoOrderChange() {
+  if (history.value.length > 0) {
+    // Move the current state to the redo stack
+    redoStack.value.push(JSON.parse(JSON.stringify(questions.value)))
+    // Restore the previous state from history
+    const previousState = history.value.pop()
+    questions.value = previousState
+    showToast('Undo successful.', 'info', 1500)
+  }
+}
+
+/**
+ * Redoes the last undone change to the question order.
+ */
+function redoOrderChange() {
+  if (redoStack.value.length > 0) {
+    // Move the current state back to the history stack
+    history.value.push(JSON.parse(JSON.stringify(questions.value)))
+    // Restore the next state from the redo stack
+    const nextState = redoStack.value.pop()
+    questions.value = nextState
+    showToast('Redo successful.', 'info', 1500)
+  }
+}
+
+/**
  * Navigates back to the admin dashboard.
  */
 function backToDashboard() {
+  unlockOrientation() // Ensure orientation is unlocked before leaving
   router.push('/admin/dashboard')
 }
 
@@ -623,12 +760,27 @@ const scrollToTop = () => {
 }
 
 onMounted(() => {
+  // Add listeners for orientation and resize events
+  window.addEventListener('resize', checkOrientation)
+  window.addEventListener('orientationchange', checkOrientation)
+  // Perform an initial check when the component mounts
+  nextTick(() => {
+    isMobile.value = window.innerWidth < 768
+    isPortrait.value = window.matchMedia('(orientation: portrait)').matches
+    // Show suggestion only on initial load if on mobile and in portrait
+    if (isMobile.value && isPortrait.value) {
+      showLandscapeSuggestion.value = true
+    }
+  })
   window.addEventListener('scroll', handleScroll)
   // Note: The uiStore is not used here, but this pattern is kept for consistency
   // uiStore.setMainScrollContainer(mainContent.value)
 })
 
 onBeforeUnmount(() => {
+  unlockOrientation() // Critically, unlock orientation when leaving the page
+  window.removeEventListener('resize', checkOrientation)
+  window.removeEventListener('orientationchange', checkOrientation)
   window.removeEventListener('scroll', handleScroll)
   // uiStore.setMainScrollContainer(null)
 })
@@ -656,8 +808,11 @@ watch(
       class="bg-white shadow-sm py-4 px-6 flex justify-between items-center sticky top-0 z-20"
     >
       <div class="flex items-center">
-        <RouterLink to="/admin/dashboard" class="text-xl sm:text-2xl font-bold"
-          >N<span class="text-blue-600">E</span>T TR<span class="text-blue-600">I</span>AD
+        <RouterLink
+          to="/admin/dashboard"
+          @click="unlockOrientation"
+          class="text-xl sm:text-2xl font-bold"
+          >IT<span class="text-blue-600">I</span>VA
           <span class="text-blue-600 hidden sm:inline">Admin</span></RouterLink
         >
       </div>
@@ -728,6 +883,7 @@ watch(
             @remove-question="removeQuestion"
             @update:question="handleQuestionUpdate"
             @update:questions="updateQuestionOrder"
+            :scroll-container="mainContent"
           />
 
           <!-- Add New Question Form -->
@@ -933,6 +1089,141 @@ watch(
         </div>
       </div>
     </main>
+
+    <!-- Undo/Redo Buttons -->
+    <transition name="fade">
+      <div
+        v-if="history.length > 0"
+        class="fixed top-20 z-30 w-full flex justify-center md:w-auto md:right-8"
+      >
+        <div
+          class="bg-white rounded-full shadow-lg p-1 flex items-center space-x-1 border border-gray-200"
+        >
+          <button
+            @click="undoOrderChange"
+            :disabled="history.length === 0"
+            class="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Undo Order Change"
+          >
+            <svg
+              class="w-6 h-6 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
+              ></path>
+            </svg>
+          </button>
+          <button
+            @click="redoOrderChange"
+            :disabled="redoStack.length === 0"
+            class="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Redo Order Change"
+          >
+            <svg
+              class="w-6 h-6 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3"
+              ></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Landscape Suggestion Modal -->
+    <transition name="fade">
+      <div
+        v-if="showLandscapeSuggestion"
+        class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50"
+      >
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full text-center relative">
+          <button
+            @click="closeLandscapeSuggestion"
+            class="absolute top-2 right-2 text-gray-400 hover:text-gray-600 p-1 rounded-full transition-colors"
+            aria-label="Close suggestion"
+          >
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              ></path>
+            </svg>
+          </button>
+          <h3 class="text-xl font-bold text-gray-800 mb-4">Landscape View Recommended</h3>
+          <p class="text-gray-600 mb-6">
+            For the best experience managing questions, please switch to landscape view.
+          </p>
+          <button
+            @click="requestLandscape"
+            class="w-full cursor-pointer py-3 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition-colors"
+          >
+            Switch to Landscape
+          </button>
+        </div>
+      </div>
+    </transition>
+    <!-- Floating Landscape Button -->
+    <transition name="fade">
+      <button
+        v-if="isMobile && isPortrait"
+        @click="requestLandscape"
+        @mousedown="startTooltipTimer"
+        @mouseup="cancelTooltipTimer"
+        @mouseleave="cancelTooltipTimer"
+        @touchstart.passive="startTooltipTimer"
+        @touchend="cancelTooltipTimer"
+        class="fixed top-20 right-4 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all z-30"
+        aria-label="Switch to Landscape View"
+      >
+        <svg
+          class="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M20.49 15a9 9 0 0 1-14.85 3.36L1 14"
+          ></path>
+        </svg>
+      </button>
+    </transition>
+    <!-- Tooltip for long press on rotate button -->
+    <transition name="fade">
+      <div
+        v-if="showRotateTooltip"
+        class="fixed top-36 right-4 w-max max-w-[200px] bg-gray-900 text-white text-xs rounded-md py-1.5 px-3 shadow-lg z-40"
+        role="tooltip"
+      >
+        Rotate to Landscape for better user experience
+      </div>
+    </transition>
 
     <!-- Import Mode Selection Modal -->
     <transition name="fade">
