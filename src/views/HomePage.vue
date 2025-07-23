@@ -1,8 +1,9 @@
 <!-- src/views/HomePage.vue - Major rebuild based on new layout and grading requirements -->
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { useAuthStore } from '@/stores/auth' // Import the auth store
-import { useAssessmentStore } from '@/stores/assessment' // Import the assessment store
+import { useAuthStore } from '@/stores/auth'
+import { useReportsStore } from '@/stores/reports'
+import { useQuestionnairesStore } from '@/stores/questionnaires'
 import { useRouter } from 'vue-router'
 import { mockRankings } from '@/api/mockData' // Assuming mockRankings is structured as per previous definition
 
